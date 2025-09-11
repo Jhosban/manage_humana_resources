@@ -148,9 +148,13 @@ export const MainLayout = () => {
                 <Space style={{ cursor: 'pointer', padding: '8px' }}>
                   <Avatar icon={<UserOutlined />} />
                   <div style={{ display: collapsed ? 'none' : 'flex' , flexDirection: 'column'}}>
-                    <Text strong>{user?.name || 'Usuario'}</Text>
+                    <Text strong>
+                      {user?.name && user.name !== 'Usuario' ? user.name : 'Usuario Invitado'}
+                    </Text>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {user?.role || 'Empleado'}
+                      {user?.role === 'admin' ? 'Administrador' : 
+                       user?.role === 'manager' ? 'Gerente' : 
+                       user?.role === 'employee' ? 'Empleado' : 'Usuario'}
                     </Text>
                   </div>
                 </Space>

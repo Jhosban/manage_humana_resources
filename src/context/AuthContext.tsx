@@ -13,8 +13,15 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  register: (userData: RegisterData) => Promise<void>;
   logout: () => void;
+}
+
+interface RegisterData {
+  Name: string;
+  LastName: string;
+  Password: string;
+  Email?: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +41,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const API_URL = 'http://localhost:3000/auth';
 
   // Verificar si hay un usuario guardado en localStorage al cargar
   useEffect(() => {
@@ -49,46 +57,114 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, _password: string): Promise<void> => {
+  const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
     try {
-      // Simular llamada a API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data - en producción vendría del servidor
-      const mockUser: User = {
-        id: '1',
-        name: 'Usuario Admin',
-        email: email,
-        role: 'admin'
-      };
+      const response = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al iniciar sesión');
+      }
+
+      const data = await response.json();
+      console.log('Login response data:', data); // Para debugging
+      
+      // Construir objeto de usuario con la respuesta del servidor
+      let userData: User;
+      
+      // Caso específico para la respuesta del login que contiene admin
+      if (data.admin) {
+        const { Name, LastName, Email, id } = data.admin;
+        userData = {
+          id: id?.toString() || Date.now().toString(),
+          name: `${Name} ${LastName}`,
+          email: Email || email,
+          role: 'admin', // Asumiendo que si viene en 'admin' es un administrador
+        };
+      } 
+      // Caso genérico para otras posibles estructuras
+      else {
+        userData = {
+          id: data.id || data.userId || Date.now().toString(),
+          name: data.name || data.userName || 'Usuario',
+          email: email,
+          role: data.role || 'employee',
+        };
+      }
+
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      console.log('User data saved after login:', userData); // Para debugging
+      
+      // Si el servidor devuelve un token o access_token, guardarlo
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      } else if (data.access_token) {
+        localStorage.setItem('token', data.access_token);
+      }
     } catch (error) {
-      throw new Error('Error al iniciar sesión');
+      console.error('Login error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (userData: any): Promise<void> => {
+  const register = async (userData: RegisterData): Promise<void> => {
     setIsLoading(true);
     try {
-      // Simular llamada a API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Eliminar cualquier campo adicional no requerido por la API
+      const apiPayload: Record<string, string> = {
+        Name: userData.Name,
+        LastName: userData.LastName,
+        Password: userData.Password,
+      };
       
+      // Solo agregar Email si está presente
+      if (userData.Email) {
+        apiPayload.Email = userData.Email;
+      }
+      
+      const response = await fetch(`${API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al registrar usuario');
+      }
+
+      const data = await response.json();
+      
+      // Construir objeto de usuario con la respuesta del servidor
       const newUser: User = {
-        id: Date.now().toString(),
-        name: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email,
-        role: 'employee'
+        id: data.id || data.userId || Date.now().toString(),
+        name: `${userData.Name} ${userData.LastName}`,
+        email: userData.Email || '',
+        role: 'employee',
       };
 
       setUser(newUser);
       localStorage.setItem('user', JSON.stringify(newUser));
+      
+      // Si el servidor devuelve un token, guardarlo también
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
     } catch (error) {
-      throw new Error('Error al registrar usuario');
+      console.error('Register error:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +173,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const value: AuthContextType = {

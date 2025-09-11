@@ -7,7 +7,6 @@ import {
   LockOutlined, 
   EyeInvisibleOutlined, 
   EyeTwoTone,
-  PhoneOutlined,
   TeamOutlined
 } from '@ant-design/icons';
 import { Button, Input, Card, Form, FormItem, useForm } from '../components/ui';
@@ -15,11 +14,11 @@ import { useAuth } from '../context/AuthContext';
 
 const { Title, Text, Link } = Typography;
 
+// Interfaz para el formulario
 interface RegisterFormData {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
   password: string;
   confirmPassword: string;
 }
@@ -38,11 +37,23 @@ export const SignUpPage = () => {
 
     setLoading(true);
     try {
-      await register(values);
+      // Transformar los datos al formato esperado por la API
+      const userData = {
+        Name: values.firstName,
+        LastName: values.lastName,
+        Password: values.password,
+        Email: values.email || undefined
+      };
+      
+      await register(userData);
       message.success('¡Registro exitoso! Bienvenido al sistema');
       navigate('/dashboard');
     } catch (error) {
-      message.error('Error al registrar usuario');
+      if (error instanceof Error) {
+        message.error(error.message || 'Error al registrar usuario');
+      } else {
+        message.error('Error al registrar usuario');
+      }
     } finally {
       setLoading(false);
     }
@@ -118,34 +129,17 @@ export const SignUpPage = () => {
               </Col>
             </Row>
 
-            {/* Email */}
+            {/* Email (opcional según el endpoint) */}
             <FormItem
               name="email"
               rules={[
-                { required: true, message: 'Por favor ingresa tu email' },
                 { type: 'email', message: 'Ingresa un email válido' }
               ]}
             >
               <Input
                 size="large"
-                placeholder="Correo electrónico"
+                placeholder="Correo electrónico (opcional)"
                 leftIcon={<MailOutlined />}
-                fullWidth
-              />
-            </FormItem>
-
-            {/* Teléfono */}
-            <FormItem
-              name="phone"
-              rules={[
-                { required: true, message: 'Ingresa tu teléfono' },
-                { pattern: /^[0-9\-\+\s\(\)]+$/, message: 'Formato de teléfono inválido' }
-              ]}
-            >
-              <Input
-                size="large"
-                placeholder="Teléfono"
-                leftIcon={<PhoneOutlined />}
                 fullWidth
               />
             </FormItem>
@@ -155,11 +149,7 @@ export const SignUpPage = () => {
               name="password"
               rules={[
                 { required: true, message: 'Por favor ingresa tu contraseña' },
-                { min: 8, message: 'La contraseña debe tener al menos 8 caracteres' },
-                { 
-                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 
-                  message: 'Debe contener mayúsculas, minúsculas y números' 
-                }
+                { min: 6, message: 'La contraseña debe tener al menos 6 caracteres' }
               ]}
             >
               <AntInput.Password

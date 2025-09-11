@@ -25,7 +25,11 @@ export const SignInPage = () => {
       message.success('¡Inicio de sesión exitoso!');
       navigate('/dashboard');
     } catch (error) {
-      message.error('Error al iniciar sesión');
+      if (error instanceof Error) {
+        message.error(error.message || 'Error al iniciar sesión');
+      } else {
+        message.error('Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
