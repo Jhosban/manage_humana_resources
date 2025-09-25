@@ -2,12 +2,19 @@ import type { ReactNode } from 'react';
 import { Button as AntButton } from 'antd';
 import type { ButtonProps as AntButtonProps } from 'antd';
 
-export interface ButtonProps extends Omit<AntButtonProps, 'type' | 'size'> {
+export interface ButtonProps {
   children: ReactNode;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'small' | 'middle' | 'large';
   fullWidth?: boolean;
   buttonType?: 'button' | 'submit' | 'reset';
+  className?: string;
+  style?: React.CSSProperties;
+  onClick?: React.MouseEventHandler<HTMLElement>;
+  disabled?: boolean;
+  loading?: boolean;
+  icon?: React.ReactNode;
+  [key: string]: any; // Para permitir otros props de AntButton
 }
 
 export const Button = ({
@@ -42,13 +49,20 @@ export const Button = ({
     ...style,
     ...(fullWidth && { width: '100%' }),
     ...(variant === 'danger' && { backgroundColor: '#ff4d4f', borderColor: '#ff4d4f' }),
+    // Aseguramos que los botones outline sean siempre visibles con un borde más definido
+    ...(variant === 'outline' && { 
+      borderColor: '#1890ff',
+      color: '#1890ff',
+      borderWidth: '1px',
+      opacity: 1
+    }),
   };
 
   return (
     <AntButton
       type={getAntType()}
       size={size}
-      htmlType={buttonType}
+      htmlType={buttonType as any}
       className={className}
       style={combinedStyle}
       danger={variant === 'danger'}
