@@ -56,7 +56,7 @@ export const SignInPage = () => {
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <Title level={2} style={{ marginBottom: 8, color: '#1890ff' }}>
-              Bienvenido
+              TalentHub Pro
             </Title>
             <Text type="secondary">
               Inicia sesión en tu cuenta

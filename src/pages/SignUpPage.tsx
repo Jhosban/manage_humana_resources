@@ -80,10 +80,10 @@ export const SignUpPage = () => {
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <Title level={2} style={{ marginBottom: 8, color: '#1890ff' }}>
-              Crear Cuenta
+              TalentHub Pro
             </Title>
             <Text type="secondary">
-              Únete a nuestro sistema de gestión
+              Crea tu cuenta para gestionar recursos humanos
             </Text>
           </div>
 

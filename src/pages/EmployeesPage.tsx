@@ -47,7 +47,7 @@ export const EmployeesPage = () => {
   const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [searchText, setSearchText] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -81,15 +81,8 @@ export const EmployeesPage = () => {
         filteredEmployees = response.data.filter(emp => !emp.isActive);
       }
       
-      // Ordenar los empleados por ID (de menor a mayor)
-      const sortedEmployees = [...filteredEmployees].sort((a, b) => {
-        const idA = a.businessEntityID || 0;
-        const idB = b.businessEntityID || 0;
-        return idA - idB;
-      });
-      
-      // Establecer empleados filtrados y ordenados
-      setEmployees(sortedEmployees);
+      // Establecer empleados filtrados
+      setEmployees(filteredEmployees);
       
       // Actualizar paginación (solo si no estamos filtrando por inactivos)
       if (statusFilter !== 'inactive') {

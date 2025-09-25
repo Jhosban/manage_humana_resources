@@ -18,50 +18,55 @@ export const employeeService = {
 
   // Get all employees with optional pagination and filtering
   async getEmployees(params?: EmployeeSearchParams): Promise<PaginatedResponse<Employee>> {
-    const queryParams = new URLSearchParams();
-    
-    // El problema es que necesitamos invertir el número de página para obtener el orden correcto
-    // Si la paginación está habilitada y hay un total de páginas
-    if (params?.page !== undefined && params?.limit !== undefined) {
-      // Primero realizamos una solicitud para obtener el total de páginas
-      const countQueryParams = new URLSearchParams();
-      if (params?.includeInactive !== undefined) countQueryParams.append('includeInactive', params.includeInactive.toString());
-      countQueryParams.append('limit', params.limit.toString());
+    // Crear una función de utilidad para obtener todos los empleados sin paginación
+    // y luego aplicar paginación manualmente para garantizar el orden correcto
+    const getAllEmployees = async (includeInactive?: boolean): Promise<Employee[]> => {
+      const allQueryParams = new URLSearchParams();
+      if (includeInactive !== undefined) allQueryParams.append('includeInactive', includeInactive.toString());
       
-      const countUrl = `${BASE_URL}?${countQueryParams.toString()}`;
-      try {
-        // Realizamos una solicitud rápida solo para obtener el total de páginas
-        const countResponse = await fetch(countUrl);
-        const countData = await countResponse.json();
-        const totalPages = countData.pagination.totalPages;
-        
-        // Calculamos la página inversa
-        const invertedPage = totalPages - params.page + 1;
-        
-        // Usamos la página invertida para la solicitud real
-        queryParams.append('page', invertedPage.toString());
-      } catch (error) {
-        console.error("Error obteniendo el total de páginas:", error);
-        // Si hay un error, usamos la página original
-        queryParams.append('page', params.page.toString());
-      }
-    } else if (params?.page) {
-      queryParams.append('page', params.page.toString());
+      // Solicitamos todos los empleados sin paginación
+      const allUrl = `${BASE_URL}?${allQueryParams.toString()}&limit=10000`;
+      const allResponse = await fetch(allUrl);
+      const allData = await allResponse.json();
+      
+      return allData.data;
+    };
+    
+    try {
+      // Obtener todos los empleados
+      const allEmployees = await getAllEmployees(params?.includeInactive);
+      
+      // Ordenar por ID (ascendente)
+      const sortedEmployees = [...allEmployees].sort((a, b) => {
+        return (a.businessEntityID || 0) - (b.businessEntityID || 0);
+      });
+      
+      // Aplicar paginación manualmente
+      const page = params?.page || 1;
+      const limit = params?.limit || 10;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      
+      // Extraer la página actual
+      const paginatedEmployees = sortedEmployees.slice(startIndex, endIndex);
+      
+      // Construir respuesta paginada
+      return {
+        message: "Employees retrieved successfully",
+        statusCode: 200,
+        data: paginatedEmployees,
+        pagination: {
+          total: sortedEmployees.length,
+          page: page,
+          limit: limit,
+          totalPages: Math.ceil(sortedEmployees.length / limit)
+        }
+      };
+      
+    } catch (error) {
+      console.error("Error retrieving employees:", error);
+      throw error;
     }
-    
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.includeInactive !== undefined) queryParams.append('includeInactive', params.includeInactive.toString());
-    
-    const url = `${BASE_URL}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    // Invertimos el orden de los elementos en la página actual
-    // para mostrar correctamente el orden de IDs (de menor a mayor)
-    data.data = data.data.reverse();
-    
-    return data;
   },
 
   // Get a single employee by ID
@@ -103,53 +108,50 @@ export const employeeService = {
 
   // Search for employees
   async searchEmployees(searchParams: EmployeeSearchParams): Promise<PaginatedResponse<Employee>> {
-    const queryParams = new URLSearchParams();
-    
-    if (searchParams.q) queryParams.append('q', searchParams.q);
-    
-    // El problema es que necesitamos invertir el número de página para obtener el orden correcto
-    // Si la paginación está habilitada y hay un total de páginas
-    if (searchParams.page !== undefined && searchParams.limit !== undefined && searchParams.q) {
-      // Primero realizamos una solicitud para obtener el total de páginas
-      const countQueryParams = new URLSearchParams();
-      countQueryParams.append('q', searchParams.q);
-      if (searchParams?.includeInactive !== undefined) countQueryParams.append('includeInactive', searchParams.includeInactive.toString());
-      countQueryParams.append('limit', searchParams.limit.toString());
+    try {
+      // Construir los parámetros de búsqueda
+      const searchQueryParams = new URLSearchParams();
+      if (searchParams.q) searchQueryParams.append('q', searchParams.q);
+      if (searchParams.includeInactive !== undefined) searchQueryParams.append('includeInactive', searchParams.includeInactive.toString());
       
-      const countUrl = `${BASE_URL}/search?${countQueryParams.toString()}`;
-      try {
-        // Realizamos una solicitud rápida solo para obtener el total de páginas
-        const countResponse = await fetch(countUrl);
-        const countData = await countResponse.json();
-        const totalPages = countData.pagination.totalPages;
-        
-        // Calculamos la página inversa
-        const invertedPage = totalPages - searchParams.page + 1;
-        
-        // Usamos la página invertida para la solicitud real
-        queryParams.append('page', invertedPage.toString());
-      } catch (error) {
-        console.error("Error obteniendo el total de páginas:", error);
-        // Si hay un error, usamos la página original
-        queryParams.append('page', searchParams.page.toString());
-      }
-    } else if (searchParams.page) {
-      queryParams.append('page', searchParams.page.toString());
+      // Realizar la búsqueda sin paginación para obtener todos los resultados
+      const searchUrl = `${BASE_URL}/search?${searchQueryParams.toString()}`;
+      const searchResponse = await fetch(searchUrl);
+      const searchData = await searchResponse.json();
+      
+      // Obtener todos los resultados de la búsqueda
+      const allSearchResults = searchData.data || [];
+      
+      // Ordenar por ID (ascendente)
+      const sortedResults = [...allSearchResults].sort((a, b) => {
+        return (a.businessEntityID || 0) - (b.businessEntityID || 0);
+      });
+      
+      // Aplicar paginación manualmente
+      const page = searchParams.page || 1;
+      const limit = searchParams.limit || 10;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      
+      // Extraer la página actual
+      const paginatedResults = sortedResults.slice(startIndex, endIndex);
+      
+      // Construir respuesta paginada
+      return {
+        message: "Search results retrieved successfully",
+        statusCode: 200,
+        data: paginatedResults,
+        pagination: {
+          total: sortedResults.length,
+          page: page,
+          limit: limit,
+          totalPages: Math.ceil(sortedResults.length / limit)
+        }
+      };
+    } catch (error) {
+      console.error("Error searching employees:", error);
+      throw error;
     }
-    
-    if (searchParams.limit) queryParams.append('limit', searchParams.limit.toString());
-    if (searchParams.includeInactive !== undefined) queryParams.append('includeInactive', searchParams.includeInactive.toString());
-    
-    const url = `${BASE_URL}/search?${queryParams.toString()}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    // Invertimos el orden de los elementos en la página actual
-    // para mostrar correctamente el orden de IDs (de menor a mayor)
-    data.data = data.data.reverse();
-    
-    return data;
   },
 
   // Get employee by national ID

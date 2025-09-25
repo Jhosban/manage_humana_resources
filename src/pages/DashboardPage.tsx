@@ -98,15 +98,7 @@ export const DashboardPage = () => {
         });
         
         const mappedEmployees = response.data.map(mapToDisplayEmployee);
-        
-        // Ordenar los empleados por ID para mantener su posición
-        const sortedEmployees = [...mappedEmployees].sort((a, b) => {
-          const idA = Number(a.businessEntityID) || 0;
-          const idB = Number(b.businessEntityID) || 0;
-          return idA - idB;
-        });
-        
-        setEmployees(sortedEmployees);
+        setEmployees(mappedEmployees);
         
         // Actualizar la paginación con el total
         setPagination(prev => ({

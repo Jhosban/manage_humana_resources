@@ -89,7 +89,7 @@ export const MainLayout = () => {
         }}>
           {!collapsed && (
             <Title level={4} style={{ margin: 0, color: '#1890ff' }}>
-              HR System
+              TalentHub Pro
             </Title>
           )}
           {collapsed && (
